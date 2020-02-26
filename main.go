@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"gohex/campaign"
 	mongodb "gohex/storage/mongo"
 	redisdb "gohex/storage/redis"
@@ -19,34 +20,36 @@ func main() {
 	dbType := flag.String("database", "redis", "database type [redis, mongo]")
 	flag.Parse()
 
-	var repository campaign.Repository
+	var campaignRepo campaign.CampaignRepository
 
 	switch *dbType {
 	case "redis":
-		conn := redisConnection("localhost:6379")
-		repository = redisdb.New(conn)
+		redisConnection := connectRedis("localhost:6379")
+		defer redisConnection.Close()
+		campaignRepo = redisdb.NewRedisCampaignRepository(redisConnection)
 	case "mongo":
-		conn := mongoConnection("mongodb://localhost:27017")
-		repository = mongodb.New(conn)
+		mongoConnection := connectMongo("mongodb://localhost:27017")
+		campaignRepo = mongodb.NewMongoCampaignRepository(mongoConnection)
 	default:
 		panic("Unknown database")
 	}
 
-	service := campaign.Service(repository)
-	handler := campaign.Handler(service)
+	service := campaign.NewCampaignService(campaignRepo)
+	handler := campaign.NewCampaignHandler(service)
 
 	router := gin.New()
 
 	router.Use(gin.Recovery())
 	router.POST("/campaigns", handler.Create)
 	router.GET("/campaings/:id", handler.GetByID)
-	router.GET("/campaings", handler.GetAll)
+	router.GET("/campaings", handler.Get)
 
+	fmt.Println("Listening on http://localhost:3000")
 	router.Run(":3000")
 }
 
-func redisConnection(url string) (client *redis.Client) {
-	client = redis.NewClient(&redis.Options{
+func connectRedis(url string) *redis.Client {
+	client := redis.NewClient(&redis.Options{
 		Addr:     url,
 		Password: "",
 		DB:       0,
@@ -58,10 +61,12 @@ func redisConnection(url string) (client *redis.Client) {
 		panic(err)
 	}
 
-	return
+	fmt.Println("Connected to Redis DB")
+
+	return client
 }
 
-func mongoConnection(url string) (db *mongo.Database) {
+func connectMongo(url string) *mongo.Database {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
@@ -83,7 +88,9 @@ func mongoConnection(url string) (db *mongo.Database) {
 		panic(err)
 	}
 
-	db = client.Database("go-hex")
+	db := client.Database("go-hex")
 
-	return
+	fmt.Println("Connected to Mongo DB")
+
+	return db
 }

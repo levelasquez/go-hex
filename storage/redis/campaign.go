@@ -9,46 +9,48 @@ import (
 
 const table = "campaigns"
 
-type repository struct {
+type campaignRepository struct {
 	connection *redis.Client
 }
 
-// New - actua como puerto
-func New(connection *redis.Client) campaign.Repository {
-	return &repository{
+// NewRedisCampaignRepository - acts as a port
+func NewRedisCampaignRepository(connection *redis.Client) campaign.CampaignRepository {
+	return &campaignRepository{
 		connection,
 	}
 }
 
-func (r *repository) Create(campaign campaign.Campaign) (err error) {
+func (r *campaignRepository) Create(campaign *campaign.Campaign) error {
 	encoded, err := json.Marshal(campaign)
 
 	if err != nil {
-		return
+		return err
 	}
 
 	r.connection.HSet(table, campaign.ID, encoded)
 
-	return
+	return nil
 }
 
-func (r *repository) FindByID(id string) (campaign campaign.Campaign, err error) {
+func (r *campaignRepository) FindByID(id string) (*campaign.Campaign, error) {
 	bytes, err := r.connection.HGet(table, id).Bytes()
 
 	if err != nil {
-		return
+		return nil, err
 	}
 
-	err = json.Unmarshal(bytes, &campaign)
+	campaign := new(campaign.Campaign)
+
+	err = json.Unmarshal(bytes, campaign)
 
 	if err != nil {
-		return
+		return nil, err
 	}
 
-	return
+	return campaign, nil
 }
 
-func (r *repository) FindAll() (campaigns []campaign.Campaign, err error) {
+func (r *campaignRepository) FindAll() (campaigns []*campaign.Campaign, err error) {
 	values := r.connection.HGetAll(table).Val()
 
 	for key, value := range values {
@@ -56,12 +58,12 @@ func (r *repository) FindAll() (campaigns []campaign.Campaign, err error) {
 		err = json.Unmarshal([]byte(value), campaign)
 
 		if err != nil {
-			return
+			return nil, err
 		}
 
 		campaign.ID = key
-		campaigns = append(campaigns, *campaign)
+		campaigns = append(campaigns, campaign)
 	}
 
-	return
+	return campaigns, nil
 }

@@ -6,30 +6,31 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Handler - Actua como adaptador
-// Técnicamente no es parte del dominio
-type Handler interface {
+// CampaignHandler - Acts as adapter
+// Technically not part of the domain
+// It could be part of a handler package
+type CampaignHandler interface {
 	Create(c *gin.Context)
 	GetByID(c *gin.Context)
 	Get(c *gin.Context)
 }
 
-type handler struct {
-	service Service
+type campaignHandler struct {
+	campaignService CampaignService
 }
 
-// NewHandler - init
-func NewHandler(service Service) Handler {
-	return &handler{
-		service,
+// NewCampaignHandler - initialize the handler
+func NewCampaignHandler(campaignService CampaignService) CampaignHandler {
+	return &campaignHandler{
+		campaignService,
 	}
 }
 
-func (h *handler) Create(c *gin.Context) {
+func (h *campaignHandler) Create(c *gin.Context) {
 	var campaign Campaign
 	c.BindJSON(&campaign)
 
-	err := h.service.CreateCampaign(campaign)
+	err := h.campaignService.CreateCampaign(&campaign)
 
 	if err != nil {
 		c.Status(http.StatusInternalServerError)
@@ -38,14 +39,14 @@ func (h *handler) Create(c *gin.Context) {
 	c.Status(http.StatusCreated)
 }
 
-func (h *handler) GetByID(c *gin.Context) {
+func (h *campaignHandler) GetByID(c *gin.Context) {
 	id := c.Param("id")
 
 	if id == "" {
 		c.Status(http.StatusBadRequest)
 	}
 
-	campaign, err := h.service.FindCampaignByID(id)
+	campaign, err := h.campaignService.FindCampaignByID(id)
 
 	if err != nil {
 		c.Status(http.StatusInternalServerError)
@@ -54,8 +55,8 @@ func (h *handler) GetByID(c *gin.Context) {
 	c.JSON(http.StatusOK, campaign)
 }
 
-func (h *handler) Get(c *gin.Context) {
-	campaigns, err := h.service.FindAllCampaigns()
+func (h *campaignHandler) Get(c *gin.Context) {
+	campaigns, err := h.campaignService.FindAllCampaigns()
 
 	if err != nil {
 		c.Status(http.StatusInternalServerError)

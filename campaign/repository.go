@@ -1,8 +1,8 @@
 package campaign
 
-// Repository - interface for campaign
-type Repository interface {
-	Create(campaign Campaign) (err error)
-	FindByID(id string) (campaign Campaign, err error)
-	FindAll() (campaigns []Campaign, err error)
+// CampaignRepository - capacities of the domain
+type CampaignRepository interface {
+	Create(campaign *Campaign) error
+	FindByID(id string) (*Campaign, error)
+	FindAll() ([]*Campaign, error)
 }

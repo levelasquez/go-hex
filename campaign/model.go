@@ -2,7 +2,7 @@ package campaign
 
 import "time"
 
-// Campaign - modelo que describe lo que es una campaña
+// Campaign - model - entity - schema of the domain
 type Campaign struct {
 	ID        string    `json:"id" db:"id"`
 	Name      string    `json:"name" db:"name"`

@@ -6,36 +6,36 @@ import (
 	"github.com/google/uuid"
 )
 
-// Service - interface
-type Service interface {
-	CreateCampaign(campaign Campaign) error
-	FindCampaignByID(id string) (Campaign, error)
-	FindAllCampaigns() ([]Campaign, error)
+// CampaignService - business logic
+type CampaignService interface {
+	CreateCampaign(campaign *Campaign) error
+	FindCampaignByID(id string) (*Campaign, error)
+	FindAllCampaigns() ([]*Campaign, error)
 }
 
-type service struct {
-	repository Repository
+type campaignService struct {
+	repo CampaignRepository
 }
 
-// NewService - init
-func NewService(repository Repository) Service {
-	return &service{
-		repository,
+// NewCampaignService - initialize the service
+func NewCampaignService(repo CampaignRepository) CampaignService {
+	return &campaignService{
+		repo,
 	}
 }
 
-func (s *service) CreateCampaign(campaign Campaign) error {
+func (s *campaignService) CreateCampaign(campaign *Campaign) error {
 	campaign.ID = uuid.New().String()
 	campaign.CreatedAt = time.Now()
 	campaign.UpdatedAt = time.Now()
 
-	return s.repository.Create(campaign)
+	return s.repo.Create(campaign)
 }
 
-func (s *service) FindCampaignByID(id string) (Campaign, error) {
-	return s.repository.FindByID(id)
+func (s *campaignService) FindCampaignByID(id string) (*Campaign, error) {
+	return s.repo.FindByID(id)
 }
 
-func (s *service) FindAllCampaigns() ([]Campaign, error) {
-	return s.repository.FindAll()
+func (s *campaignService) FindAllCampaigns() ([]*Campaign, error) {
+	return s.repo.FindAll()
 }

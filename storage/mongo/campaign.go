@@ -6,59 +6,62 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
 const table = "campaigns"
 
-type repository struct {
+type campaignRepository struct {
 	db *mongo.Database
 }
 
-// New - actua como puerto
-func New(db *mongo.Database) campaign.Repository {
-	return &repository{
+// NewMongoCampaignRepository - acts as a port
+func NewMongoCampaignRepository(db *mongo.Database) campaign.CampaignRepository {
+	return &campaignRepository{
 		db,
 	}
 }
 
-func (r *repository) Create(campaign campaign.Campaign) (err error) {
+func (r *campaignRepository) Create(campaign *campaign.Campaign) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	_, err = r.db.Collection(table).InsertOne(ctx, campaign)
+	r.db.Collection(table).InsertOne(ctx, campaign)
 
-	return
+	return nil
 }
 
-func (r *repository) FindByID(id string) (campaign campaign.Campaign, err error) {
+func (r *campaignRepository) FindByID(id string) (*campaign.Campaign, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	oid, err := primitive.ObjectIDFromHex(id)
+	campaign := new(campaign.Campaign)
+
+	filter := bson.M{"id": id}
+	err := r.db.Collection(table).FindOne(ctx, filter).Decode(campaign)
 
 	if err != nil {
-		return
+		return nil, err
 	}
 
-	filter := bson.M{"_id": oid}
-	err = r.db.Collection(table).FindOne(ctx, filter).Decode(&campaign)
-
-	return
+	return campaign, nil
 }
 
-func (r *repository) FindAll() (campaigns []campaign.Campaign, err error) {
+func (r *campaignRepository) FindAll() (campaigns []*campaign.Campaign, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	cursor, err := r.db.Collection(table).Find(ctx, bson.M{})
 
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	err = cursor.All(ctx, &campaigns)
 
-	return
+	if err != nil {
+		return nil, err
+	}
+
+	return campaigns, nil
 }
